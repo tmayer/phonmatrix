@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PhonMatrix</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <script type="text/javascript" src="static/d3.v2.min.js"></script>
+
+    <link rel="stylesheet" type="text/css" media="all" href="static/style.css" />
+       <style>
+       #tooltip {
+		    position: absolute;
+		    height: auto;
+		    padding: 10px;
+		    background-color: white;
+		    -webkit-border-radius: 6px;
+		    -moz-border-radius: 6px;
+		    border-radius: 6px;
+		    -webkit-box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.4);
+		    -moz-box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.4);
+		    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.4);
+		    pointer-events: none;
+		       z-index: 9;
+		       opacity: 0.75;
+	   }
+	   
+   		#tooltip.hidden {
+   	    	display: none;
+   		}
+		
+		#tooltip p {
+		    margin: 0;
+		    font-family: sans-serif;
+		    font-size: 14px;
+	        font-weight: bold;
+		    //line-height: 20px;
+		}
+	   
+	   .label{
+		   font-family: Helvetica, Verdana, Arial, sans-serif;
+	   }
+	   .label.active{
+		   fill: white;
+	   }
+       
+       .labelBackground {
+           fill: lightgray;
+       }
+       
+	   .labelBackground.active {
+		   fill:gray;
+	   }
+       
+       line {
+         stroke: #fff;
+       }
+       
+       .background {
+           fill: none;
+       }
+       #legend {
+           position: relative;
+           left: 0px;
+           top: 10px;
+           text-align: center;
+       }
+	   #vis {
+	       position: relative;
+           margin-top: 50px;
+	   }
+       path.domain {
+           fill:none ;
+         stroke: #000;
+         stroke-width: 1px;
+         height: 2px;
+       }
+       .axis line {
+           fill: none;
+           stroke: black;
+           shape-rendering: crispEdges;
+       }
+       #toolvalue {
+           position: relative;
+           top: -5px;
+           height: 10px;
+           width: 40px;
+           text-align: center
+       }
+       #toolvalue.hidden {
+           visibility: hidden;;
+       }
+	   </style>
+</head>
+<body>
+    
+    <div id="container">
+    
+        <div id="header">
+            <span id="logo">PhonMatrix <span id="beta">alpha</span></span>
+            <div id="steps"><a href="/">Step1</a> - <a href="/step2">Step 2</a> - Step 3</div>
+        </div>
+	
+    <div id="contents">
+        
+        <div id="description">
+            <h3>Step 3: Visualization</h3>
+            <p>Please select the association measure and order of symbols. You can also move individual columns or rows by dragging their label cell to the desired position.</p>
+            
+        </div>
+        
+    
+    	<!-- control panel -->
+    	<div id="control">
+    		<label>Association measure: </label><select id="measure">
+    		  <option value="phi">Phi</option>
+    		  <option value="prob">Probability</option>
+    		  <option value="pmi">Pointwise Mutual Information (PMI)</option>
+    		</select>
+    		Order: <select id="order">
+    		  <option value="phi">by phi values</option>
+    		  <option value="prob">by probability values</option>
+    		  <option value="pmi">by PMI values</option>
+    		  <option value="name">alphabetically</option>
+    		  <option value="curr">manually</option>
+    		</select>
+            <label>Size: </label>
+    		<input type="range" min="50" max="700" id='slider'>
+            <br />
+            <label>Transform values: </label>
+    		<input type="range" min="50" max="700" id='valslider'>
+            <label>Show tooltip: </label>
+    		<input type="checkbox" id='toolcheck' name='toolcheck' checked="true">
+    	</div>
+	
+    	<!-- Here is the visualization -->
+        <div id="legend"></div>
+        <div id="toolvalue" class="hidden">
+        	⬆<br>
+                <span id="tvalue">100</span>
+            
+        </div>
+    	<div id="vis"></div>
+    
+
+	
+    	<!-- Tooltip div -->
+        <div id="tooltip" class="hidden">
+    	<p><span id="value">100</span></p>
+        </div>
+    
+    </div>
+
+    <div id="footer">
+        PhonMatrix &copy; 2013 - Implementation by <a href="http://th-mayer.de">Thomas Mayer</a>
+    </div>
+
+</div>
+	
+	
+	<script>
+    
+    var data;
+	var w = 500;
+	var h = w;
+    var x;
+    var y;
+	var margin = {top: w/10, right: w/40, bottom: w/40, left: w/10 + 100};
+	var measure = "phi";
+    var orders;
+    var matrix;
+    var pmi_values = new Array();
+    var color = d3.scale.linear().domain([-1,0,1]).range(["red","white","blue"]);
+    var default_value = 'phi';
+    var order_value = 'phi';
+    var n; 
+    var stepsNr = 390; // for the legend
+    var steps; // for the legend color scale
+	var toolc = true; // show tooltip
+    
+	d3.select("#slider").attr("value",w)
+					
+
+		//############### LOAD DATA ####################
+        
+		d3.json("static/finnish.json",function(data){
+			
+
+            
+            data.associations.forEach(function(ass){
+                pmi_values.push(ass.pmi);
+            })            
+            if(measure == 'pmi'){
+                color.domain([d3.min(pmi_values),0,d3.max(pmi_values)])
+            }
+            //console.log(pmi_values)
+	
+			symbols = data.symbols;
+			n = symbols.length;
+            matrix = [];
+		
+			symbols.forEach(function(symbol,i){
+				symbol.index = i;
+				matrix[i] = d3.range(n).map(
+                    function(j){return{x: j, y: i, phi: 0, prob: 0, pmi: 0}; });
+			});
+            
+		
+			// prob
+				data.associations.forEach(function(association){
+					matrix[association.first][association.second].prob = association.prob;
+					matrix[association.first][association.second].phi = association.phi;
+					matrix[association.first][association.second].pmi = association.pmi;
+				});
+			
+			
+	
+			orders = {
+				name: d3.range(n).sort(function(a,b){ 
+					return d3.ascending(symbols[a].name, symbols[b].name);
+				}),
+				phi: d3.range(n).sort(function(a,b){
+					return symbols[a].phiOrder - symbols[b].phiOrder;
+				}),
+				prob: d3.range(n).sort(function(a,b){
+					return symbols[a].probOrder - symbols[b].probOrder;
+				}),
+				pmi: d3.range(n).sort(function(a,b){
+					return symbols[a].pmiOrder - symbols[b].pmiOrder;
+				}),
+                curr: d3.range(n).sort(function(a,b){
+                    return d3.ascending(symbols[b].name, symbols[a].name);
+                })
+			};
+            
+            init();
+            
+        });
+        
+        //############### END: LOAD DATA ####################
+        
+        //############### FUNCTION INIT ####################
+        
+    	function init(){
+
+            margin = {top: w/n, right: w/40, bottom: w/40, left: w/n };
+
+            x = d3.scale.ordinal().rangeBands([0,w]);
+            y = d3.scale.ordinal().rangeBands([0,w]);
+            x.domain(orders[order_value]);
+            
+            default_value = order_value;
+
+            if(measure == "pmi"){
+                color.domain([d3.min(pmi_values),0,d3.max(pmi_values)])
+                    .range(["red","white","blue"]);
+            
+            }
+            else if(measure == "prob"){
+    			color.domain([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1])
+            		.range(["#fffff6","#f9fee4","#e5fece","#c4feb9","#a7fdb1","#92fec5",
+                    "#7dfde6","#69eafc","#52b0fd","#3768f9","#3833fb"]);
+            }
+            else{
+                color.domain([-1,0,1]).range(["red","white","blue"]);
+            }
+		
+		
+    		var canvas = d3.select("#vis")
+    						.append("svg")
+    						.attr("width",w + margin.left + margin.right)
+    						.attr("height",w + margin.top + margin.bottom)
+    						.append("g")
+    						.attr("transform","translate(" + margin.left + "," + margin.top + ")");
+		
+			
+	
+			canvas.append("rect")
+				.attr("class","background")
+				.attr("width",w)
+				.attr("height",h)
+				.attr("fill","none")
+				;
+                
+            //############### PLOT ROWS ####################
+			
+			var row = canvas.selectAll(".row")
+				.data(matrix)
+				.enter().append("g")
+				.attr("class","row")
+				.attr("transform",function(d,i){ return "translate(0," + x(i) + ")"; })
+				.each(row);
+                
+                row.append("line")
+                    .attr("x2", w);
+			
+			row.append("rect")
+			.attr("x",-x.rangeBand())
+			.attr("class","labelBackground")
+			.attr("width",x.rangeBand())
+			.attr("height",x.rangeBand())
+			//.attr("fill","lightgray")
+		    .attr('rx',x.rangeBand()/10)
+		    .attr('ry',x.rangeBand()/10)
+			.style("cursor","move")
+			;
+			
+			row.append("text")
+			.attr("class","label")
+			.attr("x",-x.rangeBand()/2)
+			.attr("y",x.rangeBand() / 2)
+			.attr("dy",".32em")
+			.attr("text-anchor","middle")
+			.style("font-size",function(){return x.rangeBand()/2 + "pt";})
+			.text(function(d,i){ return symbols[i].name;})
+			.attr("pointer-events","none")
+			;
+            
+            //############### END: PLOT ROWS ####################
+            
+            //############### PLOT COLUMNS ####################
+		
+			var column = canvas.selectAll(".column")
+				.data(matrix)
+				.enter().append("g")
+				.attr("class","column")
+				.attr("transform", function(d,i) { return "translate(" + x(i) + ")rotate(-90)"; })
+				;
+                
+                column.append("line")
+                    .attr("x1", -w);
+			
+			column.append("rect")
+				.attr("x",0)
+				.attr("class","labelBackground")
+				.attr("width",x.rangeBand())
+				.attr("height",x.rangeBand())
+				//.attr("fill","lightgray")
+		    	.attr('rx',x.rangeBand()/10)
+		    	.attr('ry',x.rangeBand()/10)
+			    .style("cursor","move")
+				;
+			
+			column.append("text")
+				.attr("x",x.rangeBand()/2)
+				.attr("y",-x.rangeBand()/2)
+				.attr("dy",".32em")
+				.attr("class","label")
+				.style("font-size",function(){return x.rangeBand()/2 + "pt";})
+				.attr("text-anchor","middle")
+				.attr("transform", function(d,i) { return "translate(0," + 0 + ")rotate(90)";})
+				.text(function(d,i){ return symbols[i].name; })
+				.attr("pointer-events","none")
+				;
+                
+            //############### END: PLOT COLUMNS ####################
+                
+            //############### ROW FUNCTION ####################
+			
+			function row(row){
+			
+				var cell = d3.select(this).selectAll(".cell")
+				//.data(row.filter(function(d){ return d[measure];}))
+                .data(row)
+				.enter().append("g")
+				.attr("class","cell")
+				.on("mouseover",mouseover)
+				.on("mouseout",mouseout)
+				;
+			
+				cell.append("rect")
+				//.attr("class","cell")
+				.attr("x",function(d){ return x(d.x);})
+				.attr("width", x.rangeBand())
+				.attr("height", x.rangeBand())
+				.attr("fill",function(d){ return color(d[measure]);})
+		    	.attr('rx',x.rangeBand()/10)
+		    	.attr('ry',x.rangeBand()/10)
+				.style("cursor","pointer")
+				;	
+			
+				cell.append("text")
+				.attr("x",function(d){ return x(d.x);})
+				//.attr("y",function(d){ return x(d.y);})
+				.attr("class","sign")
+				.attr("width", x.rangeBand())
+				.attr("height", x.rangeBand())
+				.attr("text-anchor","middle")
+				.attr("dy",x.rangeBand()/2 + 0.47 * x.rangeBand())
+				.attr("dx",x.rangeBand()/2)
+				.style("font-size",function(){ return 2 * x.rangeBand()/2 + "pt"})
+				.attr("fill","white")
+				.text(function(d,i){
+					if(d.phi < 0){ return "−";}
+					else{ return "+";}
+				})
+				.attr("pointer-events","none")
+                ;
+			
+			}
+            
+            //############### END: ROW FUNCTION ####################
+            
+            //############### MOUSEOVER ####################
+		
+			function mouseover(p){
+					//console.log("col: " + p.x);
+					//console.log("row: " + p.x,p.y,p.z);
+				d3.selectAll(".row .labelBackground").classed("active",function(d,i){ 
+					return i == p.y;});
+				d3.selectAll(".column .labelBackground").classed("active",function(d,i){ 
+					return i == p.x;});
+				d3.selectAll(".row .label").classed("active",function(d,i){
+					return i == p.y;
+				});
+				d3.selectAll(".column .label").classed("active",function(d,i){
+					return i == p.x;
+				});
+			
+
+				//var xPosition = parseFloat(d3.select(this).attr("x")) + 80 ;
+				//var yPosition = parseFloat(d3.select(this).attr("y")) + 150 ;
+		        var xPosition = parseFloat(d3.event.pageX) + 10 ;
+				var yPosition = parseFloat(d3.event.pageY) - 40 ;
+			
+				//Update the tooltip position and value
+				d3.select("#tooltip")
+					.style("left", xPosition + "px")
+					.style("top", yPosition + "px")						
+					.select("#value")
+					.text( Math.round(p[measure]*1000)/1000);
+   
+				//Show the tooltip
+                if(toolc){
+				    d3.select("#tooltip").classed("hidden", false);
+                }
+                
+                var currScale = d3.scale.linear()
+                    .domain([-1,1])
+                    .range([0,1])
+                ;
+                if(measure == "prob"){
+                    currScale.domain([0,1])
+                    .range([0,1]);
+                }
+                else if(measure == "pmi"){
+                    currScale.domain([d3.min(pmi_values),d3.max(pmi_values)])
+                    .range([0,1]);
+                }
+                
+                // show value tooltip
+                d3.select("#toolvalue")
+                    .style('left',(currScale(p[measure]))*stepsNr*2 + "px")
+                    .select('#tvalue')
+					.text( Math.round(p[measure]*1000)/1000)
+                ;
+                d3.select('#toolvalue').classed('hidden',false);
+			}
+            
+		
+			function mouseout(p){
+			
+				d3.selectAll(".labelBackground").classed("active",false);
+				d3.selectAll(".label").classed("active",false);
+				d3.select("#tooltip").classed("hidden", true);
+				d3.select("#toolvalue").classed("hidden", true);
+			}
+            
+            //############### END: MOUSEOVER ####################
+            
+            //############### CHANGE ORDER ####################
+						
+		    d3.select("#order").on("change", function() {
+		      //clearTimeout(timeout);
+		      order(this.value,1000,1);
+		      //order_value = this.value;
+
+		    });
+            //############### END: CHANGE ORDER ####################
+            
+            
+            //############### ORDER ####################
+            
+		    function order(value,duration,delay) {
+              //console.log(order_value, orders[default_value])
+              y.domain(orders[default_value])
+              //console.log(value,orders[value])
+		      x.domain(orders[value]);
+		      //console.log("x: " + orders[value]);
+              order_value = value
+
+		      var t = canvas.transition().duration(duration);
+		      //console.log(t);
+
+		      t.selectAll(".row")
+		          .delay(function(d, i) { return delay * x(i) * 4; })
+		          .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
+		        .selectAll(".cell")
+		          .delay(function(d) { return delay * x(d.x) * 4; })
+		          //.attr("x", function(d) { return x(d.x); })
+                  .attr("transform", function(d, i) { 
+                      offset = x(d.x) - y(d.x);
+                      //console.log(offset)
+                      return "translate(" + offset + ",0)"; })
+                  ;
+
+		      t.selectAll(".column")
+		          .delay(function(d, i) { return delay * x(i) * 4; })
+		          .attr("transform", function(d, i) {  
+					  return "translate(" + x(i) + ")rotate(-90)"; 
+				  });
+		    }
+            
+            //############### END: ORDER ####################
+            
+            //############### CHANGE MEASURE ####################
+            
+            d3.select("#measure").on("change", function() {
+              //clearTimeout(timeout);
+              measure = this.value;
+        	  association_measure(measure);
+            });	
+            
+            //############### END: CHANGE MEASURE ####################
+            
+            //############### MEASURE ####################
+            
+            function association_measure(m){
+                
+              measure = m;
+
+  		      var t = canvas.transition().duration(1000);
+              var l = legend.transition().duration(1000);
+              
+              if(measure == "prob"){
+
+  			  color = d3.scale.linear().domain([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1])
+          		.range(["#fffff6","#f9fee4","#e5fece","#c4feb9","#a7fdb1","#92fec5",
+                  "#7dfde6","#69eafc","#52b0fd","#3768f9","#3833fb"]);
+              
+              
+              t.selectAll(".cell rect")
+              .attr("fill",function(d){ return color(d.prob)});
+              
+              l.selectAll('.legcell')
+                .attr("fill",function(d){ return color(d);});
+                
+              
+              var xScale = d3.scale.linear()
+                  .domain([0,0.5,1])
+                  .range([0,stepsNr,stepsNr*2])
+              ;
+              
+              
+        
+        
+              var xAxis = d3.svg.axis()
+                  .scale(xScale)
+                  .orient('top')
+                  ;
+                 
+                  d3.select('.axis')
+                  .transition().duration(1000)
+                  .call(xAxis);
+                  
+                  steps = d3.range(0,1,1/stepsNr);
+              
+                  d3.selectAll('.legcell')
+                  .data(steps)
+                  .transition().duration(1000)
+                  .attr('fill',function(d,i){
+                      return color(d);
+                  });
+                  
+              
+              }
+              else if(measure == "pmi"){
+                  color.domain([d3.min(pmi_values),0,d3.max(pmi_values)])
+                    .range(["red","white","blue"]);
+                  t.selectAll(".cell rect")
+                  .attr("fill",function(d){ return color(d.pmi)});
+              
+                  l.selectAll('.legcell')
+                    .attr("fill",function(d){ return color(d);});
+                    
+                    var xScale = d3.scale.linear()
+                        .domain([d3.min(pmi_values),d3.max(pmi_values)])
+                        .range([0,stepsNr*2])
+                    ;
+        
+        
+                    var xAxis = d3.svg.axis()
+                        .scale(xScale)
+                        .orient('top')
+                        ;
+                 
+                        d3.select('.axis')
+                        .transition().duration(1000)
+                        .call(xAxis);
+                  
+                        steps = d3.range(d3.min(pmi_values),d3.max(pmi_values),
+                        (d3.max(pmi_values)-d3.min(pmi_values))/stepsNr);
+              
+                        d3.selectAll('.legcell')
+                        .data(steps)
+                        .transition().duration(1000)
+                        .attr('fill',function(d,i){
+                            return color(d);
+                        });
+              }
+              else{
+                  color.domain([-1,0,1]).range(["red","white","blue"]);
+                  t.selectAll(".cell rect")
+                  .attr("fill",function(d){ return color(d.phi)});
+              
+                  l.selectAll('.legcell')
+                    .attr("fill",function(d){ console.log(d); return color(d);});
+                    
+                    var xScale = d3.scale.linear()
+                        .domain([-1,0,1])
+                        .range([0,stepsNr,stepsNr*2])
+                    ;
+        
+        
+                    var xAxis = d3.svg.axis()
+                        .scale(xScale)
+                        .orient('top')
+                        ;
+                 
+                        d3.select('.axis')
+                        .transition().duration(1000)
+                        .call(xAxis);
+                  
+                        steps = d3.range(-1,1,2/stepsNr);
+              
+                        d3.selectAll('.legcell')
+                        .data(steps)
+                        .transition().duration(1000)
+                        .attr('fill',function(d,i){
+                            return color(d);
+                        });
+              }
+              
+                
+            }
+            
+            //############### END: MEASURE ####################
+            
+            //############### DRAG ROWS ####################
+            
+            var drag1 = d3.behavior.drag()
+              .origin(function() { 
+                  var t = d3.select(this);
+                  return {x: t.attr("x") + d3.transform(t.attr("transform")).translate[0],
+                          y: t.attr("y") + d3.transform(t.attr("transform")).translate[1]};
+              })
+              .on("drag", function(d,i) {
+             //this.parentNode.appendChild(this);
+     
+              currOrder = orders[order_value];
+              //console.log(i);
+     
+     
+     
+                  d3.select(this).attr("transform", function(d,i){
+                      var t = d3.select(this);
+                      var pos = d3.event.y;
+                      var parHeight = h - (h/n);
+                      new_pos = currOrder.indexOf(parseInt(
+                          d3.transform(t.attr('transform')).translate[1] / (h/n)
+                      ));
+             
+                      if(d3.event.y > parHeight){
+                          pos = parHeight;
+                      }
+                      else if(d3.event.y < 0){
+                          pos = 0;
+                      }
+                      else{
+                          pos = d3.event.y;
+                      }
+                      return "translate(" + 
+                          [ d3.transform(t.attr('transform')).translate[0],pos] + ")"
+                  });
+                  
+                  d3.selectAll(".row").attr("opacity",function(d,i){
+                      //console.log(d,i);
+                      var t = d3.select(this);
+                      new_pos = parseInt((d3.event.y + x.rangeBand()/2)  / (h/n));
+                      act_pos = currOrder.indexOf(i);
+                      //console.log(act_pos,new_pos);
+                      if(new_pos == act_pos){
+                          return 0.2;
+                      }
+                      else{
+                          return 1;
+                      }
+                  });
+                  
+                  
+                  d3.select(this).attr("opacity",1);
+
+         
+         
+              })
+              .on("dragend",function(d,i){
+                  currOrder = orders[order_value].slice();;
+                  var t = d3.select(this);
+                  old_pos = currOrder.indexOf(d[i].y) //currOrder.indexOf(i)
+                  var new_pos = parseInt((
+                      d3.transform(t.attr('transform')).translate[1] + x.rangeBand()/2) / (h/n));
+
+                  var tmp = currOrder.splice(old_pos,1);
+
+                  currOrder.splice(new_pos,0,tmp[0]);
+                  orders.curr = currOrder;
+                  order('curr',200,0);
+                  
+                  var dd = document.getElementById('order');
+                  for (var j = 0; j < dd.options.length; j++) {
+                      if (dd.options[j].text === 'manually') {
+                          dd.selectedIndex = j;
+                          break;
+                      }
+                  }
+                  
+                  d3.selectAll(".column").attr("opacity",function(d,i){
+                      return 1;
+                  });
+                  d3.selectAll(".row").attr("opacity",function(d,i){
+                      return 1;
+                  });
+              });
+              
+              //############### END: DRAG ROWS ####################
+              
+              //############### DRAG COLUMNS ####################
+              
+              var drag2 = d3.behavior.drag()
+                .origin(function() { 
+                    var t = d3.select(this);
+                    return {x: t.attr("x") + d3.transform(t.attr("transform")).translate[0],
+                            y: t.attr("y") + d3.transform(t.attr("transform")).translate[1]};
+                })
+                .on("drag", function(d,i) {
+               //this.parentNode.appendChild(this);
+     
+                currOrder = orders[order_value];
+     
+                    d3.selectAll(".column").attr("opacity",function(d,i){
+                        //console.log(d,i);
+                        var t = d3.select(this);
+                        new_pos = parseInt((d3.event.x + x.rangeBand()/2) / (w/n));
+                        act_pos = currOrder.indexOf(i);
+                        //console.log(act_pos,new_pos);
+                        if(new_pos == act_pos){
+                            //console.log(act_pos);
+                            return 0.2;
+                        }
+                        else{
+                            return 1;
+                        }
+                    });
+                    
+                    d3.selectAll(".cell").attr("opacity",function(d,i){
+                        //console.log(d,i);
+                        var t = d3.select(this);
+                        new_pos = parseInt((d3.event.x + x.rangeBand()/2) / (w/n));
+                        act_pos = currOrder.indexOf(i % n);
+                        //console.log(act_pos,new_pos);
+                        if(new_pos == act_pos){
+                            //console.log(act_pos);
+                            return 0.2;
+                        }
+                        else{
+                            return 1;
+                        }
+                    });
+                    
+                    d3.select(this).attr("opacity",1);
+                    
+                    d3.select(this).attr("transform", function(d,i){
+                        var t = d3.select(this);
+                        var pos = d3.event.x;
+                        var parHeight = w - (w/n);
+                        new_pos = currOrder.indexOf(parseInt(
+                            d3.transform(t.attr('transform')).translate[0] / (w/n)));
+             
+                        if(d3.event.x > parHeight){
+                            pos = parHeight;
+                        }
+                        else if(d3.event.x < 0){
+                            pos = 0;
+                        }
+                        else{
+                            pos = d3.event.x;
+                        }
+                        return "translate(" + 
+                        [ pos,d3.transform(t.attr('transform')).translate[1]] + ")rotate(-90)"
+                    });
+                    
+         
+         
+                })
+                .on("dragend",function(d,i){
+         		   	y.domain(orders[default_value])
+                    currOrder = orders[order_value].slice();;
+                    var t = d3.select(this);
+                    old_pos = currOrder.indexOf(d[i].x) //currOrder.indexOf(i)
+                    var new_pos = parseInt((
+                        d3.transform(t.attr('transform')).translate[0] + x.rangeBand()/2) / (w/n));
+         
+                    var tmp = currOrder.splice(old_pos,1);
+                    currOrder.splice(new_pos,0,tmp[0]);
+                    orders.curr = currOrder;
+                    order('curr',200,0);
+                  
+                    var dd = document.getElementById('order');
+                    for (var j = 0; j < dd.options.length; j++) {
+                        if (dd.options[j].text === 'manually') {
+                            dd.selectedIndex = j;
+                            break;
+                        }
+                    }
+                    
+                    d3.selectAll(".column").attr("opacity",function(d,i){
+                        return 1;
+                    });
+                    d3.selectAll(".row").attr("opacity",function(d,i){
+                        return 1;
+                    });
+                    d3.selectAll(".cell").attr("opacity",1);
+                    
+                });
+                
+                //############### END: DRAG COLUMNS ####################
+            
+		row.call(drag1);
+        column.call(drag2);
+        
+        //############### LEGEND ####################
+        var stepsNr = 390;
+        var currScale = d3.scale.linear();
+        if(measure == 'pmi'){
+            steps = d3.range(d3.min(pmi_values),d3.max(pmi_values),
+            (d3.max(pmi_values)-d3.min(pmi_values))/stepsNr);
+            var xScale = d3.scale.linear()
+            .domain([d3.min(pmi_values),d3.max(pmi_values)])
+            .range([0,stepsNr*2])
+            ;
+            
+
+            currScale.domain([d3.min(pmi_values),d3.max(pmi_values)])
+            .range([0,1]);
+        }
+        else if(measure == 'prob'){
+            steps = d3.range(0,1,1/stepsNr);
+            var xScale = d3.scale.linear()
+            .domain([0,0.5,1])
+            .range([0,stepsNr,stepsNr*2])
+            ;
+
+            currScale.domain([0,1])
+            .range([0,1]);
+        }
+        else{
+            steps = d3.range(-1,1,2/stepsNr);        
+            
+            var xScale = d3.scale.linear()
+            .domain([-1,0,1])
+            .range([0,stepsNr,stepsNr*2])
+            ;
+
+            currScale.domain([-1,1])
+            .range([0,1]);
+            
+        }
+        
+
+        
+        
+        var xAxis = d3.svg.axis()
+            .scale(xScale)
+            .orient('top')
+            ;
+        
+        var legend = d3.select("#legend").append("svg")
+        .attr("width", stepsNr*2 + 100)
+        .attr("height", 60)
+        .attr('x',10)
+        .attr('y',20);
+        
+        legend.selectAll('.steps')
+        .data(steps)
+        .enter().append('rect')
+        .attr('class','legcell')
+        .attr('x',function(d,i){return currScale(d)*stepsNr*2 + 20;})
+        .attr('y',20)
+        .attr('width',2)
+        .attr('height',30)
+        .attr('fill',function(d,i){
+            return color(d);
+        })
+        .style('cursor','pointer')
+        .on('mouseover',function(d){
+            var currScale = d3.scale.linear()
+                .domain([-1,1])
+                .range([0,1])
+            ;
+            if(measure == "prob"){
+                currScale.domain([0,1])
+                .range([0,1]);
+            }
+            else if(measure == "pmi"){
+                currScale.domain([d3.min(pmi_values),d3.max(pmi_values)])
+                .range([0,1]);
+            }
+            // show value tooltip
+            d3.select("#toolvalue")
+                //.style('left',(currScale(d))*stepsNr*2 + "px")
+                .style('left',currScale(d)*stepsNr*2  + "px")
+                .select('#tvalue')
+				.text( Math.round(d*1000)/1000)
+            ;
+            d3.select('#toolvalue').classed('hidden',false);
+        })
+        .on('mouseout',function(d){
+            d3.select('#toolvalue').classed('hidden',true);
+        })
+        ;
+        
+        legend.append('g')
+        .attr('class','axis')
+        .attr('transform',"translate(" + 20 + ",20)")
+        .call(xAxis);
+        
+        
+        // tooltip check
+        d3.select('#toolcheck').on('change',function(a){
+           toolc = this.checked;
+        });
+ 
+	
+	}
+	
+    // change matrix size
+    d3.select("#slider").on("change", function() {
+	     size = parseInt(this.value);
+	     h = size;
+	     w = size;
+	     d3.selectAll("svg").remove(); // delete existing objects
+	     init();
+    });		
+    
+					
+	</script>
+	
+</body>
+</html>

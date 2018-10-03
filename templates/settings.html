@@ -1,0 +1,94 @@
+$def with (outputString)
+
+<!DOCTYPE html>
+<html>
+<head>
+   <title>PhonMatrix</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <script type="text/javascript" src="http://d3js.org/d3.v2.min.js?2.8.1"></script>
+
+    <link rel="stylesheet" type="text/css" media="all" href="./static/style.css" />
+
+<link rel="stylesheet" type="text/css" media="all" href="./static/style.css" />
+
+
+
+</head>
+
+<body>
+    <div id="container">
+    
+        <div id="header">
+            <div id="logo">PhonMatrix <span id="beta">alpha</span></div>
+            <div id="steps"><a href="/">Step1</a> - Step 2 - <span class="notyet">Step 3</span></div>
+        </div>
+
+<div id="contents">
+    
+    <div id="description">
+        <h3>Step 2: Select context</h3>
+        <p>Please check whether all symbols are correctly classified. You can also ignore symbols for further processing. Then select the relevant context for the co-occurrence counts.</p>
+    </div>
+
+<form method="POST" name="sukh" enctype="multipart/form-data" action="/step2b">
+<table class='symbolTable'>
+    <tr id="symbolHeader"><td>Symbol</td><td>Frequency</td><td>Vowel</td><td>Consonant</td><td>Ignore</td></tr>
+$for line in outputString:
+    <tr id=$:line[5] $:line[6]><td>$line[0]</td><td align='right' width='100'> [$line[1]]</td>
+        <td align='center'>$:line[2]</td>
+        <td align='center'>$:line[3]</td>
+        <td align='center'>$:line[4]</td>
+    </tr>
+</table>
+<br />
+<label>Select context: </label>
+<select name="method" size="1">
+    <option value="vh">Vowel harmony (VCV context)</option>
+    <option value="spa">Similar Place Avoidance (CVC context)</option>
+    
+</select><br />
+<label>Select clustering method: </label>
+<select name="sorting" size="1">
+    <option value="ward">Ward's clustering</option>
+    <option value="single">Single linkage</option>
+    <option value="complete">Complete linkage</option>
+    
+</select><br />
+<input type="checkbox" name="bound" value="yes"> <label>Ignore cases including clusters</label> <br>
+<input type="checkbox" name="ident" value="yes"> <label>Ignore identical sounds</label> <br>
+<input type="checkbox" name="average" value="yes"> <label>Take the average value</label>
+<div id="upload">
+
+<input type="submit" class="button" value="Go to step 3">
+</form>
+</div>
+    
+</div>
+
+    <div id="footer">
+        PhonMatrix &copy; 2013 - Implementation by <a href="http://th-mayer.de">Thomas Mayer</a>
+    </div>
+
+</div>
+
+<script>
+function statecheck(layer) {
+	var myLayer = document.getElementById(layer);
+    var input1 = myLayer.childNodes[3];
+    var input2 = myLayer.childNodes[7];
+	if(input1.childNodes[0].checked == true){
+		myLayer.style.backgroundColor = "#8CBD9A";
+		
+	}
+	else if(input2.childNodes[0].checked == true){
+		myLayer.style.backgroundColor = "#CA9697";
+		} 
+    else {
+		myLayer.style.backgroundColor = null;
+	};
+	
+}
+</script>
+    
+</body>
+</html>

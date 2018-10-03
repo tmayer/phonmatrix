@@ -1,0 +1,104 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+
+<link rel="stylesheet" type="text/css" media="all" href="./static/style.css" />
+
+
+
+<title>PhonMatrix</title>
+
+
+
+</head>
+<body>
+    
+<div id="container">
+    
+    <div id="header">
+        <div id="logo">PhonMatrix <span id="beta">alpha</span></div>
+            <div id="steps">Step1 - <span class="notyet">Step 2</span> - <span class="notyet">Step 3</span></div>
+    </div>
+    
+
+    <div id="contents">
+        
+        
+        <div id="description">
+            <h3>Description</h3>
+            <p>PhonMatrix is a web-based visualization tool that statistically analyzes sound co-occurrences within words and displays the result in a symmetric sound matrix. </p>
+
+            <img src="./static/matrix.png" width="200" style="float: right;margin-left: 15px;box-shadow: 6px 6px 8px #808080; "> 
+            <p>
+                In the first step, the user has to upload the text file containing the word list that serves as the input to the analysis process. Text files have to be encoded in UTF-8 and list only one word per line. For a meaningful analysis the words should be
+                given in some phonemic transcription (e.g., using IPA). 
+            </p>
+
+            <p>
+                In the second step, the user can make changes to the automatic classification of symbols into vowels and consonants and exclude infrequent symbols from further consideration.
+            </p>
+               <p> 
+                In the third step, the results of the statistical analysis of the co-occurrence counts are displayed in a quadratic matrix of sounds. The rows and columns of the matrix represent the individual sounds that are relevant for the selected context (e.g., vowels in the context of VCV
+sequences). The rows thereby stand for the first members of the relevant sound pairs, whereas the columns contain the sec- ond members. Each cell of the matrix then shows the result for the pair of sounds in the respective row and column.
+            </p>
+            <p>
+                The final result is a visualization of the co-occurrence matrix with rows and columns sorted according to the similarity of the sound vectors and statistical values represented as colors in the matrix cells. The visualization features a number of interactive components that facilitate the detection of potential patterns in the results by the user.
+            </p>
+            
+            <div style="text-align:center;">
+            <img src="./static/workflow.png" width="750">
+            </div>
+            
+            
+        
+           
+        
+        <div id="requirements">
+            <h3>Requirements</h3>
+            <ul>
+                <li>UTF-8 character encoding</li>
+                <li>one word per line</li>
+                <li>File size max. 3MB</li>
+            </ul>
+        </div>
+
+        <h3>Step 1: Get started and upload a file!</h3>
+        <p>Upload a file and click submit to get to the next step. Alternatively, you can also click <a href="/example">here</a> to see a demo with Finnish data. 
+            
+        </p>    
+            <form method="POST" enctype="multipart/form-data" action="/step2">
+            	<input type="file" name="myfile" id="myfile" ><br /><br />
+                <div id="upload">
+            <input class="button" type="submit" value="Go to step 2"/>
+        </div>
+            </form>
+            
+        
+            <h3>Bibliography: </h3>
+                
+                <p>
+                	Mayer, Thomas and Christian Rohrdantz. To appear. PhonMatrix: Visualizing co-occurrence constraints in sounds. In <i>Proceedings of the ACL 2013 System Demonstration</i>. [<a href="http://th-mayer.de/data/uploads/phonmatrix.pdf" target="_blank">pdf</a>]</p>
+                
+                <p>
+                	Mayer, Thomas, Christian Rohrdantz, Frans Plank, Peter Bak, Miriam Butt, Daniel A. Keim. 2010. Consonant co-occurrence in stems across languages: Automatic analysis and visualization of a phonotactic constraint. In <em>Proceedings of the ACL 2010 Workshop on NLP and Linguistics: Finding the Common Ground (</em><em>NLPLING 2010)</em><em>,</em> 70–78. [<a href="http://www.aclweb.org/anthology-new/W/W10/W10-2110.pdf" target="_blank">pdf</a>]</p>
+                    
+                    <p>
+                    	Mayer, Thomas, Christian Rohrdantz, Miriam Butt, Frans Plank and Daniel A. Keim. 2010. Visualizing Vowel Harmony. <i>Journal of Linguistic Issues in Language Technology (LiLT)</i>, Vol. 4 Issue 2, 1–33. [<a href="http://elanguage.net/journals/lilt/article/view/1440" target="_blank">pdf</a>]</p>
+                        
+                        <p>
+                        	Rohrdantz, Christian, Thomas Mayer, Miriam Butt, Frans Plank and Daniel A. Keim. 2010. Comparative visual analysis of cross-linguistic features. In <i>Proceedings of the International Symposium on Visual Analytics Science and Technology (EuroVAST 2010)</i>, 27–32. [<a href="http://th-mayer.de/data/uploads/eurovast2010.pdf" target="_blank">pdf</a>]</p>
+                        
+        </div>
+        
+        
+    </div>
+
+    <div id="footer">
+        PhonMatrix &copy; 2013 - Implementation by <a href="http://th-mayer.de">Thomas Mayer</a>
+    </div>
+
+</div>
+
+</body>
+</html>
