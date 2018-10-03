@@ -55,3 +55,7 @@ If everything works as expected, you should see the following output in your ter
 Open a modern browser and go to the URL given above (http://0.0.0.0:8080/) to open the start page of the application, which describes how you can proceed to upload your own files. 
 
 An example visualization for Finnish is provided and can be directly accessed by going to the URL http://0.0.0.0:8080/example. 
+
+# Todo
+
+The code is from 2013 and needs to be updated to Python 3 and a more modern web framework such as Flask. Maybe it would even better to port the background calculations (Sukhotin and phi matrix) to JavaScript in order to run it directly in the browser with no need for a server. 
