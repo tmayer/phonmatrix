@@ -1,5 +1,5 @@
 # PhonMatrix
-Visualizing phonological patterns such as vowel harmony and similar place avoidance from language data.
+Visualizing phonological patterns such as vowel harmony and similar place avoidance from language data. The application can be accessed here: <a href="http://phonmatrix.herokuapp.com/" target="_blank">http://phonmatrix.herokuapp.com/</a>.
 
 # Description
 
@@ -11,7 +11,7 @@ In the second step, the user can make changes to the automatic classification of
 
 In the third step, the results of the statistical analysis of the co-occurrence counts are displayed in a quadratic matrix of sounds. The rows and columns of the matrix represent the individual sounds that are relevant for the selected context (e.g., vowels in the context of VCV sequences). The rows thereby stand for the first members of the relevant sound pairs, whereas the columns contain the sec- ond members. Each cell of the matrix then shows the result for the pair of sounds in the respective row and column.
 
-![PhonMatrix visualiztion](static/matrix.png)
+![PhonMatrix visualiztion](static/phonmatrix.gif)
 
 The final result is a visualization of the co-occurrence matrix with rows and columns sorted according to the similarity of the sound vectors and statistical values represented as colors in the matrix cells. The visualization features a number of interactive components that facilitate the detection of potential patterns in the results by the user.
 
